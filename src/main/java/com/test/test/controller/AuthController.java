@@ -1,8 +1,10 @@
 package com.test.test.controller;
 
+import com.test.test.dto.LoginResponse;
 import com.test.test.model.JwtUtil;
 import com.test.test.model.User;
 import com.test.test.repository.UserRepository;
+import com.test.test.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,30 +22,26 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
+    private final AuthService authService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
-        if (userRepository.existsByEmail(user.getEmail())) {
-            return ResponseEntity.badRequest().body("Email déjà utilisé !");
+        try {
+            String message = authService.register(user);
+            return ResponseEntity.ok(message);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRoles(List.of("USER"));
-        userRepository.save(user);
-        return ResponseEntity.ok("Utilisateur enregistré !");
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
-        User user = userRepository.findByEmail(loginData.get("email"))
-                .orElseThrow(() -> new RuntimeException("Email invalide"));
-        if (!passwordEncoder.matches(loginData.get("password"), user.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Mot de passe incorrect");
+        try {
+            LoginResponse response = authService.login(loginData);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(401).body(e.getMessage());
         }
-        String token = jwtUtil.generateToken(user.getEmail());
-        return ResponseEntity.ok(Map.of("token", token));
     }
 }
 
