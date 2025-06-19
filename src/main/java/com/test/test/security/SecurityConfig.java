@@ -10,6 +10,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 
 @Configuration
@@ -22,11 +23,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // désactiver CSRF pour les API
-                .cors(Customizer.withDefaults()) // activer CORS avec config externe
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // JWT = stateless
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll() // autoriser toutes les requêtes
-                );
+                        .requestMatchers("/api/auth/**").permitAll() // Auth endpoints accessibles sans token
+                        .anyRequest().authenticated() // Toutes les autres requêtes nécessitent un token
+                )
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class); // Ajout du filtre
 
         return http.build();
     }

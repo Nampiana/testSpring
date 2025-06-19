@@ -26,7 +26,6 @@ public class AuthService {
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRoles(List.of("USER"));
         userRepository.save(user);
 
         return "Utilisateur enregistré !";
@@ -42,7 +41,7 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(user.getEmail());
 
-        return new LoginResponse(token, user.getUsername(), user.getEmail());
+        return new LoginResponse(token, user.getUsername(), user.getEmail(), user.getRoles());
     }
 
 }
